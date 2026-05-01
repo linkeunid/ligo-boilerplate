@@ -1,4 +1,4 @@
-module github.com/linkeunid/ligo-example
+module github.com/linkeunid/ligo-boilerplate
 
 go 1.25.9
 
