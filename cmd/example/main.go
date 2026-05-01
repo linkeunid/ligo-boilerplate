@@ -4,10 +4,11 @@ import (
 	"net/http"
 
 	"github.com/linkeunid/ligo"
-	"github.com/linkeunid/ligo/adapters/echo"
+	"github.com/linkeunid/ligo-boilerplate/internal/auth"
 	"github.com/linkeunid/ligo-boilerplate/internal/health"
 	"github.com/linkeunid/ligo-boilerplate/internal/root"
 	"github.com/linkeunid/ligo-boilerplate/internal/user"
+	"github.com/linkeunid/ligo/adapters/echo"
 )
 
 // CORS middleware for cross-origin requests.
@@ -63,6 +64,7 @@ func main() {
 	// Register modules
 	// Auth module is imported by user.Module(), no need to register separately
 	app.Register(
+		auth.Module(),
 		user.Module(),  // User module (imports auth.Module())
 		health.Module(), // Health check endpoints
 		root.Module(),   // API info endpoint
