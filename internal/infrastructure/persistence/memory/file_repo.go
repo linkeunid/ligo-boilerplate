@@ -6,33 +6,27 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"sync"
 	"time"
 
+	ligomemory "github.com/linkeunid/ligo-memory"
 	"github.com/linkeunid/ligo-boilerplate/internal/domain/entity"
 	"github.com/linkeunid/ligo-boilerplate/internal/domain/repository"
 )
 
 // FileRepository is an in-memory implementation of repository.FileRepository.
+// Metadata is stored in a ligo-memory Store; file content is written to disk.
 type FileRepository struct {
-	mu    sync.RWMutex
-	files map[string]*entity.File
+	store *ligomemory.Store[string, *entity.File]
 	dir   string
 }
 
 // NewFileRepository creates a new in-memory file repository.
-func NewFileRepository(dir string) repository.FileRepository {
+func NewFileRepository(dir string, store *ligomemory.Store[string, *entity.File]) repository.FileRepository {
 	os.MkdirAll(dir, 0755)
-	return &FileRepository{
-		files: make(map[string]*entity.File),
-		dir:   dir,
-	}
+	return &FileRepository{store: store, dir: dir}
 }
 
 func (r *FileRepository) Save(file io.Reader, filename string) (*entity.File, error) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
 	content, err := io.ReadAll(file)
 	if err != nil {
 		return nil, err
@@ -54,16 +48,12 @@ func (r *FileRepository) Save(file io.Reader, filename string) (*entity.File, er
 		CreatedAt:   time.Now(),
 	}
 
-	r.files[id] = fileEntity
+	r.store.Set(id, fileEntity)
 	return fileEntity, nil
 }
 
 func (r *FileRepository) FindByID(id string) (*entity.File, bool) {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-
-	file, found := r.files[id]
-	return file, found
+	return r.store.Get(id)
 }
 
 func (r *FileRepository) GetContent(path string) (io.ReadCloser, error) {
@@ -71,30 +61,18 @@ func (r *FileRepository) GetContent(path string) (io.ReadCloser, error) {
 }
 
 func (r *FileRepository) FindAll() []*entity.File {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-
-	files := make([]*entity.File, 0, len(r.files))
-	for _, f := range r.files {
-		files = append(files, f)
-	}
-	return files
+	return r.store.All()
 }
 
 func (r *FileRepository) Delete(id string) error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	file, found := r.files[id]
+	file, found := r.store.Get(id)
 	if !found {
 		return fmt.Errorf("file not found")
 	}
-
 	if err := os.Remove(file.Path); err != nil {
 		return err
 	}
-
-	delete(r.files, id)
+	r.store.Delete(id)
 	return nil
 }
 
@@ -103,9 +81,7 @@ func detectContentType(filename string, content []byte) string {
 	if ct != "application/octet-stream" {
 		return ct
 	}
-
-	ext := filepath.Ext(filename)
-	switch ext {
+	switch filepath.Ext(filename) {
 	case ".jpg", ".jpeg":
 		return "image/jpeg"
 	case ".png":
