@@ -2,16 +2,10 @@ module github.com/linkeunid/ligo-boilerplate
 
 go 1.25.9
 
-replace github.com/linkeunid/ligo => /home/haniv/Development/work/linkeunid/dev/fw/ligo
-
-replace github.com/linkeunid/ligo-memory => /home/haniv/Development/work/linkeunid/dev/fw/ligo-memory
-
-replace github.com/linkeunid/ligo-validator => /home/haniv/Development/work/linkeunid/dev/fw/ligo-validator
-
 require (
 	github.com/go-playground/validator/v10 v10.30.2
-	github.com/linkeunid/ligo v0.0.0-00010101000000-000000000000
-	github.com/linkeunid/ligo-memory v0.0.0-00010101000000-000000000000
+	github.com/linkeunid/ligo v0.1.0
+	github.com/linkeunid/ligo-memory v0.1.0
 )
 
 require (
