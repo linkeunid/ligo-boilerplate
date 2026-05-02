@@ -31,9 +31,9 @@ func (r *UserRepository) FindAll() []*entity.User {
 	return r.store.All()
 }
 
-func (r *UserRepository) Create(name, email string) *entity.User {
+func (r *UserRepository) Create(name, email, role string) *entity.User {
 	id := nextID()
-	user := &entity.User{ID: id, Name: name, Email: email, Role: "user"}
+	user := &entity.User{ID: id, Name: name, Email: email, Role: role}
 	r.store.Set(id, user)
 	return user
 }

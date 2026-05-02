@@ -34,7 +34,7 @@ func (uc *UserUseCase) GetAllUsers() []*entity.User {
 
 // CreateUser creates a new user.
 func (uc *UserUseCase) CreateUser(input dto.CreateUserInput) (*entity.User, error) {
-	user := uc.repo.Create(input.Name, input.Email)
+	user := uc.repo.Create(input.Name, input.Email, input.Role)
 	uc.log.Info("User created",
 		ligo.LoggerField{Key: "user_id", Value: user.ID},
 		ligo.LoggerField{Key: "name", Value: user.Name},

@@ -2,8 +2,10 @@ package dto
 
 // CreateUserInput represents the input for creating a user.
 type CreateUserInput struct {
-	Name  string `json:"name" validate:"required,min=2,max=100"`
-	Email string `json:"email" validate:"required,email"`
+	Name     string `json:"name"     validate:"required,min=2,max=100"`
+	Email    string `json:"email"    validate:"required,email"`
+	Password string `json:"password" validate:"required,min=8,max=72"`
+	Role     string `json:"role"     validate:"required,oneof=admin user"`
 }
 
 // UserResponse represents the user response DTO.

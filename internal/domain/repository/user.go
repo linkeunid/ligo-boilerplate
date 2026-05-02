@@ -15,7 +15,7 @@ type UserRepository interface {
 	FindAll() []*entity.User
 
 	// Create adds a new user and returns the created entity.
-	Create(name, email string) *entity.User
+	Create(name, email, role string) *entity.User
 
 	// Update updates an existing user.
 	// Returns the updated user and true if successful, nil and false if not found.
