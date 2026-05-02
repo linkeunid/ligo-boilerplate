@@ -104,7 +104,19 @@ var (
 )
 ```
 
-`ExceptionMiddleware` maps these to HTTP status codes (401, 403, 404, 400).
+`ExceptionMiddleware` maps these and additional framework errors to HTTP status codes:
+
+| Error | Status |
+|-------|--------|
+| `usecase.ErrUnauthorized` | 401 |
+| `usecase.ErrForbidden` | 403 |
+| `usecase.ErrNotFound` | 404 |
+| `ligo.ErrBadRequest` | 400 |
+| `validator.ValidationErrors` | 422 |
+| `usecase.ErrValidation` | 400 |
+| everything else | 500 |
+
+`ligo.ErrBadRequest` is wrapped by `UUIDPipe`, `ParseIntPipe`, and `ParseBoolPipe` when a path parameter is invalid. `validator.ValidationErrors` is returned by `ValidationPipe` when struct tag validation fails.
 
 ## Audit Logging
 

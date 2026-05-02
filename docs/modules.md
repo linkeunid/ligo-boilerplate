@@ -115,11 +115,11 @@ func NewProductController(uc *usecase.ProductUseCase, log ligo.Logger) *ProductC
 func (c *ProductController) Routes(r ligo.Router) {
     cr := ligo.NewChainRouter(r.Group("/products"))
     cr.GET("", c.ListProducts).Handle()
-    cr.GET("/:id", c.GetProduct).Handle()
+    cr.GET("/:id", c.GetProduct).Pipe(ligo.UUIDPipe("id")).Handle()
 }
 
 func (c *ProductController) GetProduct(ctx ligo.Context) error {
-    id := ctx.Param("id")
+    id := ctx.Param("id") // validated UUID string, stored by UUIDPipe
     product, err := c.uc.GetProduct(id)
     if err != nil {
         return err
@@ -136,68 +136,73 @@ package module
 
 import (
     "github.com/linkeunid/ligo"
-    "github.com/linkeunid/ligo-boilerplate/internal/config"
+    "github.com/linkeunid/ligo-boilerplate/internal/domain/repository"
     "github.com/linkeunid/ligo-boilerplate/internal/infrastructure/http/controller"
-    "github.com/linkeunid/ligo-boilerplate/internal/infrastructure/http/middleware"
     "github.com/linkeunid/ligo-boilerplate/internal/infrastructure/persistence/memory"
     "github.com/linkeunid/ligo-boilerplate/internal/usecase"
 )
 
-func Product(cfg *config.Config, log ligo.Logger) ligo.Module {
-    repo := memory.NewProductRepository()
-    uc := usecase.NewProductUseCase(repo, log)
-
+func Product() ligo.Module {
     return ligo.NewModule("product",
-        ligo.Controllers(
-            func() ligo.Controller { return controller.NewProductController(uc, log) },
+        ligo.Providers(
+            ligo.Factory[repository.ProductRepository](memory.NewProductRepository),
+            ligo.Factory[*usecase.ProductUseCase](usecase.NewProductUseCase),
         ),
+        ligo.Controllers(controller.NewProductController),
     )
 }
 ```
 
-> **Note:** `ligo.Controllers()` requires factory functions — wrap constructors in a closure. The binder calls the function via reflection to bind routes.
+`ligo.Controllers()` accepts the constructor directly. The DI binder resolves its parameters (`*usecase.ProductUseCase`, `ligo.Logger`) from the container at startup.
 
 ### 6. Register in main
 
 ```go
 // cmd/api/main.go
 app.Register(
-    module.Product(cfg, log),
+    module.Product(),
     // ...
 )
 ```
 
 ## Adding Auth Guards
 
+Guards and middleware are typically wired directly inside the controller constructor and applied per-route using `ligo.NewChainRouter`:
+
 ```go
-import (
-    infraauth "github.com/linkeunid/ligo-boilerplate/internal/infrastructure/auth"
-    "github.com/linkeunid/ligo-boilerplate/internal/infrastructure/http/middleware"
-)
-
-func Product(cfg *config.Config, log ligo.Logger) ligo.Module {
-    repo := memory.NewProductRepository()
-    uc := usecase.NewProductUseCase(repo, log)
-    authSvc := infraauth.NewJWTAuth(log)
-
-    type productRoutes struct {
-        ctrl        *controller.ProductController
-        authGuard   ligo.Guard
-        exceptionMW ligo.Middleware
-    }
-
-    routes := &productRoutes{
-        ctrl:        controller.NewProductController(uc, log),
-        authGuard:   infraauth.AuthGuard(authSvc),
+// internal/infrastructure/http/controller/product.go
+func NewProductController(uc *usecase.ProductUseCase, jwt *infraauth.JWTAuth, log ligo.Logger) *ProductController {
+    return &ProductController{
+        uc:          uc,
+        log:         log,
+        authGuard:   infraauth.AuthGuard(jwt),
         exceptionMW: middleware.ExceptionMiddleware(log),
+        loggingMW:   middleware.LoggingMiddleware(log),
     }
+}
 
+func (c *ProductController) Routes(r ligo.Router) {
+    cr := ligo.NewChainRouter(r.Group("/products"))
+    cr.Use(c.exceptionMW, c.loggingMW)
+
+    cr.GET("", c.GetAll).Handle()
+    cr.GET("/:id", c.GetByID).Guard(c.authGuard).Pipe(ligo.UUIDPipe("id")).Handle()
+    cr.POST("", c.Create).Guard(c.authGuard).Pipe(ligo.ValidationPipe(&dto.CreateProductInput{})).Handle()
+    cr.DELETE("/:id", c.Delete).Guard(c.authGuard).Pipe(ligo.UUIDPipe("id")).Handle()
+}
+```
+
+The module registers `*infraauth.JWTAuth` as a provider so it is injected into the controller constructor:
+
+```go
+func Product() ligo.Module {
     return ligo.NewModule("product",
-        ligo.Controllers(
-            func() ligo.Controller {
-                return &struct{ *productRoutes }{routes}
-            },
+        ligo.Providers(
+            ligo.Factory[repository.ProductRepository](memory.NewProductRepository),
+            ligo.Factory[*usecase.ProductUseCase](usecase.NewProductUseCase),
+            // JWTAuth is provided by the auth module or registered here
         ),
+        ligo.Controllers(controller.NewProductController),
     )
 }
 ```
@@ -206,11 +211,11 @@ func Product(cfg *config.Config, log ligo.Logger) ligo.Module {
 
 | Module | Function | Endpoints |
 |--------|---------|-----------|
-| `auth` | `module.Auth(cfg, log)` | Provides `AuthService` |
-| `user` | `module.User(cfg, log)` | `/users/*` |
-| `file` | `module.File(cfg, log)` | `/files/*` |
-| `health` | `module.Health(cfg)` | `/health` |
-| `root` | `module.Root(cfg)` | `/` |
+| `auth` | `module.Auth()` | Provides `*infraauth.JWTAuth` |
+| `user` | `module.User()` | `/users/*` |
+| `file` | `module.File()` | `/files/*` |
+| `health` | `module.Health()` | `/health` |
+| `root` | `module.Root()` | `/` |
 
 ## Swapping Persistence
 

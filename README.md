@@ -57,7 +57,7 @@ internal/
 │   └── dto/          # Data Transfer Objects
 ├── infrastructure/   # External concerns
 │   ├── auth/         # JWT implementation + guards
-│   ├── http/         # Controllers, middleware, presenters, validators
+│   ├── http/         # Controllers, middleware, presenters
 │   └── persistence/  # Repository implementations (memory, postgres, ...)
 ├── module/           # Module wiring (connects layers)
 └── config/           # Application configuration

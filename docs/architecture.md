@@ -69,10 +69,9 @@ internal/
 │   │   ├── jwt.go     # JWTAuth — implements domain/service.AuthService
 │   │   └── guard.go   # AuthGuard, AdminGuard
 │   ├── http/
-│   │   ├── controller/   # HTTP handlers — call usecases
+│   │   ├── controller/   # HTTP handlers — call usecases, use pipes for validation
 │   │   ├── middleware/   # Exception handling, logging, audit
-│   │   ├── presenter/    # Response formatting
-│   │   └── validator/    # Request validation
+│   │   └── presenter/    # Response formatting
 │   └── persistence/
 │       └── memory/    # In-memory repository implementations
 │           ├── user_repo.go  # implements domain/repository.UserRepository
@@ -89,11 +88,22 @@ HTTP Request
     → Global Middleware (CORS, recovery)
     → Route Middleware (logging, exception)
     → Guards (auth, admin)
-    → Controller (parse request)
+    → Pipes (UUID validation, body binding + struct validation)
+    → Controller (retrieve validated data, call use case)
     → UseCase (business logic)
     → Repository (data access)
     → Response
 ```
+
+## Middleware Behaviour
+
+`LoggingMiddleware` logs at different levels depending on the error type:
+
+- 4xx errors (client errors) — logged as `WARN`
+- 5xx errors (server errors) — logged as `ERROR`
+- No error — logged as `DEBUG`
+
+`ExceptionMiddleware` catches all errors, logs them, and maps them to HTTP responses. See [Authentication](authentication.md) for the full error → status code mapping.
 
 ## Key Principles
 
@@ -101,12 +111,21 @@ HTTP Request
 
 **2. Dependency inversion** — UseCases depend on repository *interfaces* (defined in domain), not concrete implementations. Swap `memory` → `postgres` without touching business logic.
 
-**3. Factory functions for controllers** — Ligo's `ligo.Controllers()` expects factory functions so the DI binder can call them via reflection:
+**3. Factory functions for controllers** — Ligo's `ligo.Controllers()` accepts constructors directly. The DI binder resolves parameters by type from the container and calls the constructor via reflection:
 
 ```go
-ligo.Controllers(
-    func() ligo.Controller { return controller.NewUserController(uc, log) },
-)
+ligo.Controllers(controller.NewUserController)
 ```
 
-**4. Manual wiring in modules** — Each module function (`module.User(cfg, log)`) manually constructs its dependency graph. This is explicit and testable without a DI framework.
+**4. Providers wire the dependency graph** — Each module registers its providers in `ligo.Providers(...)`. The DI container resolves the full graph at startup:
+
+```go
+ligo.Providers(
+    ligomemory.Provider[string, *entity.User](),
+    ligo.Factory[repository.UserRepository](memory.NewUserRepository),
+    ligo.Factory[*usecase.UserUseCase](usecase.NewUserUseCase),
+),
+ligo.Controllers(controller.NewUserController),
+```
+
+**5. Validation is a pipe concern** — Use case methods receive already-validated DTOs via `ligo.ValidatedBody[T]`. Use cases do not instantiate a validator or re-validate inputs.

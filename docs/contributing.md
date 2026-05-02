@@ -11,7 +11,7 @@ cd ligo-boilerplate
 go mod download
 
 # Run
-go run cmd/example/main.go
+go run ./cmd/api/
 ```
 
 ## Development
@@ -20,16 +20,22 @@ go run cmd/example/main.go
 
 ```
 .
-├── cmd/example/       # Application entry point
-├── internal/          # Private application code
-│   ├── auth/         # Authentication
-│   ├── common/       # Shared utilities
-│   ├── file/         # File handling
-│   ├── health/       # Health checks
-│   ├── root/         # Root endpoint
-│   └── user/         # User module
-├── docs/             # Documentation
-└── go.mod            # Go module definition
+├── cmd/api/                    # Application entry point
+├── internal/                   # Private application code
+│   ├── config/                 # Application configuration
+│   ├── domain/                 # Core business (no external deps)
+│   │   ├── entity/             # Business entities
+│   │   ├── repository/         # Repository interfaces
+│   │   └── service/            # Domain service interfaces
+│   ├── usecase/                # Application business logic
+│   │   └── dto/                # Data Transfer Objects
+│   ├── infrastructure/         # External concerns
+│   │   ├── auth/               # JWT implementation + guards
+│   │   ├── http/               # Controllers, middleware, presenters
+│   │   └── persistence/        # Repository implementations
+│   └── module/                 # Module wiring (connects layers)
+├── docs/                       # Documentation
+└── go.mod                      # Go module definition
 ```
 
 ### Code Style
@@ -37,16 +43,20 @@ go run cmd/example/main.go
 - Follow standard Go conventions
 - Use `gofmt` for formatting
 - Keep functions focused and small
-- Export types via `ligo.Factory` for DI
+- Validation belongs at the HTTP layer (pipes), not in use cases
 
 ### Adding a Feature
 
-1. Create module in `internal/feature/`
-2. Implement repository, service, controller
-3. Define module with providers/controllers
-4. Register in `cmd/example/main.go`
-5. Add tests
-6. Update documentation
+1. Define entity and repository interface in `internal/domain/`
+2. Implement business logic in `internal/usecase/`
+3. Implement repository in `internal/infrastructure/persistence/memory/`
+4. Implement controller in `internal/infrastructure/http/controller/`
+5. Wire the module in `internal/module/`
+6. Register in `cmd/api/main.go`
+7. Add tests
+8. Update documentation
+
+See [Modules Guide](modules.md) for a step-by-step walkthrough.
 
 ### Testing
 
@@ -58,16 +68,16 @@ go test ./...
 go test -cover ./...
 
 # Run specific package
-go test ./internal/user
+go test ./internal/usecase/...
 ```
 
 ### Commit Messages
 
 ```
-feat: add file upload module
-fix: resolve import cycle in common package
+feat: add product module
+fix: handle missing user in update
 docs: update authentication guide
-refactor: move interceptors to common package
+refactor: move auth guard to infrastructure/auth
 ```
 
 ## Pull Requests
@@ -77,11 +87,3 @@ refactor: move interceptors to common package
 3. Make your changes
 4. Add tests
 5. Submit a PR
-
-## Version Management
-
-Update `internal/common/version.go` for release bumps:
-
-```go
-const Version = "0.8.0"
-```

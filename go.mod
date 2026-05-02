@@ -9,6 +9,7 @@ replace github.com/linkeunid/ligo-memory => /home/haniv/Development/work/linkeun
 replace github.com/linkeunid/ligo-validator => /home/haniv/Development/work/linkeunid/dev/fw/ligo-validator
 
 require (
+	github.com/go-playground/validator/v10 v10.30.2
 	github.com/linkeunid/ligo v0.0.0-00010101000000-000000000000
 	github.com/linkeunid/ligo-memory v0.0.0-00010101000000-000000000000
 )
@@ -17,7 +18,6 @@ require (
 	github.com/gabriel-vasile/mimetype v1.4.13 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
-	github.com/go-playground/validator/v10 v10.30.2 // indirect
 	github.com/labstack/echo/v5 v5.1.0 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	golang.org/x/crypto v0.49.0 // indirect

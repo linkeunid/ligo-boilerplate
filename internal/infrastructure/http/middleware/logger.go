@@ -1,9 +1,12 @@
 package middleware
 
 import (
+	"errors"
 	"time"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/linkeunid/ligo"
+	"github.com/linkeunid/ligo-boilerplate/internal/usecase"
 )
 
 // LoggingMiddleware logs request details.
@@ -20,23 +23,35 @@ func LoggingMiddleware(log ligo.Logger) ligo.Middleware {
 			err := next(ctx)
 
 			duration := time.Since(start)
+			fields := []ligo.LoggerField{
+				{Key: "method", Value: ctx.Request().Method},
+				{Key: "path", Value: ctx.Request().URL.Path},
+				{Key: "duration_ms", Value: duration.Milliseconds()},
+			}
 
 			if err != nil {
-				log.Error("Request completed with error",
-					ligo.LoggerField{Key: "method", Value: ctx.Request().Method},
-					ligo.LoggerField{Key: "path", Value: ctx.Request().URL.Path},
-					ligo.LoggerField{Key: "duration_ms", Value: duration.Milliseconds()},
-					ligo.LoggerField{Key: "error", Value: err.Error()},
-				)
+				fields = append(fields, ligo.LoggerField{Key: "error", Value: err.Error()})
+				if isClientError(err) {
+					log.Warn("Request completed with client error", fields...)
+				} else {
+					log.Error("Request completed with error", fields...)
+				}
 			} else {
-				log.Debug("Request completed",
-					ligo.LoggerField{Key: "method", Value: ctx.Request().Method},
-					ligo.LoggerField{Key: "path", Value: ctx.Request().URL.Path},
-					ligo.LoggerField{Key: "duration_ms", Value: duration.Milliseconds()},
-				)
+				log.Debug("Request completed", fields...)
 			}
 
 			return err
 		}
 	}
+}
+
+// isClientError returns true for errors that map to 4xx responses.
+func isClientError(err error) bool {
+	var ve validator.ValidationErrors
+	return errors.Is(err, usecase.ErrUnauthorized) ||
+		errors.Is(err, usecase.ErrForbidden) ||
+		errors.Is(err, usecase.ErrNotFound) ||
+		errors.Is(err, usecase.ErrValidation) ||
+		errors.Is(err, ligo.ErrBadRequest) ||
+		errors.As(err, &ve)
 }
