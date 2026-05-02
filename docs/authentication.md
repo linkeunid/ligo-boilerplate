@@ -116,7 +116,7 @@ var (
 | `usecase.ErrValidation` | 400 |
 | everything else | 500 |
 
-`ligo.ErrBadRequest` is wrapped by `UUIDPipe`, `ParseIntPipe`, and `ParseBoolPipe` when a path parameter is invalid. `validator.ValidationErrors` is returned by `ValidationPipe` when struct tag validation fails.
+`ligo.ErrBadRequest` is wrapped by `ParseIntPipe`, `ParseIntPipe`, and `ParseBoolPipe` when a path parameter is invalid. `validator.ValidationErrors` is returned by `ValidationPipe` when struct tag validation fails.
 
 ## Audit Logging
 

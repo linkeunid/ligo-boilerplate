@@ -115,11 +115,11 @@ func NewProductController(uc *usecase.ProductUseCase, log ligo.Logger) *ProductC
 func (c *ProductController) Routes(r ligo.Router) {
     cr := ligo.NewChainRouter(r.Group("/products"))
     cr.GET("", c.ListProducts).Handle()
-    cr.GET("/:id", c.GetProduct).Pipe(ligo.UUIDPipe("id")).Handle()
+    cr.GET("/:id", c.GetProduct).Pipe(ligo.ParseIntPipe("id")).Handle()
 }
 
 func (c *ProductController) GetProduct(ctx ligo.Context) error {
-    id := ctx.Param("id") // validated UUID string, stored by UUIDPipe
+    id := ctx.Param("id") // validated UUID string, stored by ParseIntPipe
     product, err := c.uc.GetProduct(id)
     if err != nil {
         return err
@@ -186,9 +186,9 @@ func (c *ProductController) Routes(r ligo.Router) {
     cr.Use(c.exceptionMW, c.loggingMW)
 
     cr.GET("", c.GetAll).Handle()
-    cr.GET("/:id", c.GetByID).Guard(c.authGuard).Pipe(ligo.UUIDPipe("id")).Handle()
+    cr.GET("/:id", c.GetByID).Guard(c.authGuard).Pipe(ligo.ParseIntPipe("id")).Handle()
     cr.POST("", c.Create).Guard(c.authGuard).Pipe(ligo.ValidationPipe(&dto.CreateProductInput{})).Handle()
-    cr.DELETE("/:id", c.Delete).Guard(c.authGuard).Pipe(ligo.UUIDPipe("id")).Handle()
+    cr.DELETE("/:id", c.Delete).Guard(c.authGuard).Pipe(ligo.ParseIntPipe("id")).Handle()
 }
 ```
 
