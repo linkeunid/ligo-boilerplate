@@ -70,11 +70,11 @@ func AuthGuard(auth *AuthService) ligo.Guard {
 	return func(ctx ligo.Context) (bool, error) {
 		authHeader := ctx.Request().Header.Get("Authorization")
 		if authHeader == "" {
-			return false, nil
+			return false, common.ErrUnauthorized
 		}
 
 		if !strings.HasPrefix(authHeader, "Bearer ") {
-			return false, nil
+			return false, common.ErrUnauthorized
 		}
 
 		// Extract token without "Bearer " prefix
@@ -83,7 +83,7 @@ func AuthGuard(auth *AuthService) ligo.Guard {
 		// Validate token
 		user, err := auth.ValidateToken(token)
 		if err != nil {
-			return false, nil
+			return false, common.ErrUnauthorized
 		}
 
 		// Store user in context for downstream handlers
@@ -98,7 +98,7 @@ func AdminGuard() ligo.Guard {
 	return func(ctx ligo.Context) (bool, error) {
 		user, ok := ctx.Get(ContextKeyUser).(*User)
 		if !ok || user == nil {
-			return false, nil
+			return false, common.ErrUnauthorized
 		}
 
 		if !user.IsAdmin() {

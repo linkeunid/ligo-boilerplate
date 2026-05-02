@@ -5,6 +5,7 @@ import (
 
 	"github.com/linkeunid/ligo"
 	"github.com/linkeunid/ligo-boilerplate/internal/auth"
+	"github.com/linkeunid/ligo-boilerplate/internal/file"
 	"github.com/linkeunid/ligo-boilerplate/internal/health"
 	"github.com/linkeunid/ligo-boilerplate/internal/root"
 	"github.com/linkeunid/ligo-boilerplate/internal/user"
@@ -66,6 +67,7 @@ func main() {
 	app.Register(
 		auth.Module(),
 		user.Module(),  // User module (imports auth.Module())
+		file.Module(),  // File upload module
 		health.Module(), // Health check endpoints
 		root.Module(),   // API info endpoint
 	)

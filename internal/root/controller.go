@@ -2,16 +2,15 @@ package root
 
 import (
 	"github.com/linkeunid/ligo"
+	"github.com/linkeunid/ligo-boilerplate/internal/common"
 )
 
 // Controller handles root API info endpoint.
-type Controller struct {
-	version string
-}
+type Controller struct{}
 
 // NewController creates a new root controller.
 func NewController() ligo.Controller {
-	return &Controller{version: "0.7.0"}
+	return &Controller{}
 }
 
 // Routes registers all routes for the root module.
@@ -23,7 +22,7 @@ func (c *Controller) Routes(r ligo.Router) {
 func (c *Controller) Info(ctx ligo.Context) error {
 	return ctx.JSON(200, map[string]any{
 		"name":        "Ligo Boilerplate Example",
-		"version":     c.version,
+		"version":     common.Version,
 		"description": "Example application demonstrating all Ligo features",
 		"features": []string{
 			"Modules",
