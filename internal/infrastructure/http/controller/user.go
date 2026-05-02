@@ -5,7 +5,6 @@ import (
 	infraauth "github.com/linkeunid/ligo-boilerplate/internal/infrastructure/auth"
 	"github.com/linkeunid/ligo-boilerplate/internal/infrastructure/http/middleware"
 	"github.com/linkeunid/ligo-boilerplate/internal/infrastructure/http/presenter"
-	"github.com/linkeunid/ligo-boilerplate/internal/infrastructure/http/validator"
 	"github.com/linkeunid/ligo-boilerplate/internal/usecase"
 	"github.com/linkeunid/ligo-boilerplate/internal/usecase/dto"
 )
@@ -14,7 +13,6 @@ import (
 type UserController struct {
 	userUseCase *usecase.UserUseCase
 	presenter   *presenter.UserPresenter
-	validator   *validator.UserValidator
 	log         ligo.Logger
 	authGuard   ligo.Guard
 	adminGuard  ligo.Guard
@@ -28,7 +26,6 @@ func NewUserController(uc *usecase.UserUseCase, jwt *infraauth.JWTAuth, log ligo
 	return &UserController{
 		userUseCase: uc,
 		presenter:   presenter.NewUserPresenter(),
-		validator:   validator.NewUserValidator(),
 		log:         log,
 		authGuard:   infraauth.AuthGuard(jwt),
 		adminGuard:  infraauth.AdminGuard(),
@@ -46,23 +43,21 @@ func (c *UserController) Routes(r ligo.Router) {
 	cr.GET("", c.GetAllUsers).Handle()
 
 	cr.GET("/:id", c.GetUserByID).
-		Use(middleware.BindPathParams("id")).
 		Guard(c.authGuard).
 		Pipe(ligo.UUIDPipe("id")).
 		Handle()
 
 	cr.POST("", c.CreateUser).
 		Guard(c.authGuard).
+		Pipe(ligo.ValidationPipe(&dto.CreateUserInput{})).
 		Handle()
 
 	cr.PUT("/:id", c.UpdateUser).
-		Use(middleware.BindPathParams("id")).
 		Guard(c.authGuard).
-		Pipe(ligo.UUIDPipe("id")).
+		Pipe(ligo.UUIDPipe("id"), ligo.ValidationPipe(&dto.UpdateUserInput{})).
 		Handle()
 
 	cr.DELETE("/:id", c.DeleteUser).
-		Use(middleware.BindPathParams("id")).
 		Guard(c.authGuard, c.adminGuard).
 		Use(c.auditMW).
 		Pipe(ligo.UUIDPipe("id")).
@@ -87,12 +82,8 @@ func (c *UserController) GetUserByID(ctx ligo.Context) error {
 
 // CreateUser handles POST /users
 func (c *UserController) CreateUser(ctx ligo.Context) error {
-	var input dto.CreateUserInput
-	if err := ctx.Bind(&input); err != nil {
-		return usecase.ErrValidation
-	}
-
-	user, err := c.userUseCase.CreateUser(input)
+	input := ligo.ValidatedBody[dto.CreateUserInput](ctx)
+	user, err := c.userUseCase.CreateUser(*input)
 	if err != nil {
 		return err
 	}
@@ -102,12 +93,8 @@ func (c *UserController) CreateUser(ctx ligo.Context) error {
 // UpdateUser handles PUT /users/:id
 func (c *UserController) UpdateUser(ctx ligo.Context) error {
 	id := ctx.Param("id")
-	var input dto.UpdateUserInput
-	if err := ctx.Bind(&input); err != nil {
-		return usecase.ErrValidation
-	}
-
-	user, err := c.userUseCase.UpdateUser(id, input)
+	input := ligo.ValidatedBody[dto.UpdateUserInput](ctx)
+	user, err := c.userUseCase.UpdateUser(id, *input)
 	if err != nil {
 		return err
 	}

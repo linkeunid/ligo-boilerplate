@@ -1,7 +1,6 @@
 package usecase
 
 import (
-	"github.com/go-playground/validator/v10"
 	"github.com/linkeunid/ligo"
 	"github.com/linkeunid/ligo-boilerplate/internal/domain/entity"
 	"github.com/linkeunid/ligo-boilerplate/internal/domain/repository"
@@ -10,18 +9,13 @@ import (
 
 // UserUseCase contains business logic for user operations.
 type UserUseCase struct {
-	repo   repository.UserRepository
-	log    ligo.Logger
-	verify *validator.Validate
+	repo repository.UserRepository
+	log  ligo.Logger
 }
 
 // NewUserUseCase creates a new user use case.
 func NewUserUseCase(repo repository.UserRepository, log ligo.Logger) *UserUseCase {
-	return &UserUseCase{
-		repo:   repo,
-		log:    log,
-		verify: validator.New(),
-	}
+	return &UserUseCase{repo: repo, log: log}
 }
 
 // GetUserByID retrieves a user by ID.
@@ -38,12 +32,8 @@ func (uc *UserUseCase) GetAllUsers() []*entity.User {
 	return uc.repo.FindAll()
 }
 
-// CreateUser creates a new user with validation.
+// CreateUser creates a new user.
 func (uc *UserUseCase) CreateUser(input dto.CreateUserInput) (*entity.User, error) {
-	if err := uc.verify.Struct(input); err != nil {
-		return nil, ErrValidation
-	}
-
 	user := uc.repo.Create(input.Name, input.Email)
 	uc.log.Info("User created",
 		ligo.LoggerField{Key: "user_id", Value: user.ID},
@@ -52,26 +42,22 @@ func (uc *UserUseCase) CreateUser(input dto.CreateUserInput) (*entity.User, erro
 	return user, nil
 }
 
-// UpdateUser updates an existing user with validation.
+// UpdateUser updates an existing user.
 func (uc *UserUseCase) UpdateUser(id string, input dto.UpdateUserInput) (*entity.User, error) {
-	if err := uc.verify.Struct(input); err != nil {
-		return nil, ErrValidation
-	}
-
 	name := input.Name
 	email := input.Email
 
 	// Preserve existing values for partial updates
 	if name == "" || email == "" {
-		if existing, found := uc.repo.FindByID(id); found {
-			if name == "" {
-				name = existing.Name
-			}
-			if email == "" {
-				email = existing.Email
-			}
-		} else {
+		existing, found := uc.repo.FindByID(id)
+		if !found {
 			return nil, ErrNotFound
+		}
+		if name == "" {
+			name = existing.Name
+		}
+		if email == "" {
+			email = existing.Email
 		}
 	}
 
@@ -80,20 +66,15 @@ func (uc *UserUseCase) UpdateUser(id string, input dto.UpdateUserInput) (*entity
 		return nil, ErrNotFound
 	}
 
-	uc.log.Info("User updated",
-		ligo.LoggerField{Key: "user_id", Value: user.ID},
-	)
+	uc.log.Info("User updated", ligo.LoggerField{Key: "user_id", Value: user.ID})
 	return user, nil
 }
 
 // DeleteUser deletes a user by ID.
 func (uc *UserUseCase) DeleteUser(id string) error {
-	deleted := uc.repo.Delete(id)
-	if !deleted {
+	if !uc.repo.Delete(id) {
 		return ErrNotFound
 	}
-	uc.log.Info("User deleted",
-		ligo.LoggerField{Key: "user_id", Value: id},
-	)
+	uc.log.Info("User deleted", ligo.LoggerField{Key: "user_id", Value: id})
 	return nil
 }
