@@ -2,142 +2,157 @@
 
 ## Overview
 
-This boilerplate uses a simple Bearer token authentication system. In production, replace this with JWT or OAuth2.
+Authentication is implemented as a domain service (`domain/service.AuthService`) with a JWT-style implementation in `infrastructure/auth/`. Guards enforce access control at the route level.
 
 ## How It Works
 
-### 1. AuthGuard
-
-Validates the `Authorization` header:
+### 1. AuthService interface (domain layer)
 
 ```go
-Authorization: Bearer <token>
-```
-
-Format: `<username>:<password>`
-
-Example tokens (for development):
-- `user:secret` - Regular user
-- `admin:secret` - Admin user
-
-### 2. User Context
-
-On successful auth, the user is stored in request context:
-
-```go
-user, _ := ctx.Get(auth.ContextKeyUser).(*auth.User)
-```
-
-### 3. Role-Based Access
-
-Check user roles:
-
-```go
-if user.IsAdmin() {
-    // Admin-only logic
+// internal/domain/service/auth.go
+type AuthService interface {
+    ValidateToken(token string) (User, error)
 }
 ```
 
-Or use the built-in `RolesGuard`:
+The domain defines the contract. The implementation lives in infrastructure.
+
+### 2. JWTAuth implementation
+
+```go
+// internal/infrastructure/auth/jwt.go
+type JWTAuth struct { log ligo.Logger }
+
+func (j *JWTAuth) ValidateToken(token string) (service.User, error) {
+    // For demo: accepts "role:secret" format tokens
+    // Replace with real JWT parsing in production
+}
+```
+
+### 3. Guards
+
+```go
+// internal/infrastructure/auth/guard.go
+
+// AuthGuard validates the Bearer token and stores the user in context.
+func AuthGuard(authService service.AuthService) ligo.Guard
+
+// AdminGuard checks that the context user has admin role.
+func AdminGuard() ligo.Guard
+```
+
+## Token Format (Demo)
+
+```
+Authorization: Bearer <role>:secret
+```
+
+| Token | Role |
+|-------|------|
+| `user:secret` | Regular user |
+| `admin:secret` | Admin |
+
+```bash
+curl -H "Authorization: Bearer user:secret" http://localhost:8080/users/1
+curl -H "Authorization: Bearer admin:secret" -X DELETE http://localhost:8080/users/1
+```
+
+## Using Guards in Routes
+
+```go
+import (
+    infraauth "github.com/linkeunid/ligo-boilerplate/internal/infrastructure/auth"
+)
+
+authSvc := infraauth.NewJWTAuth(log)
+authGuard := infraauth.AuthGuard(authSvc)
+adminGuard := infraauth.AdminGuard()
+
+cr.GET("/:id", c.GetUser).Guard(authGuard).Handle()
+cr.DELETE("/:id", c.DeleteUser).Guard(authGuard, adminGuard).Handle()
+```
+
+## Reading the Authenticated User
+
+```go
+import "github.com/linkeunid/ligo-boilerplate/internal/domain/service"
+
+func (c *Controller) Handler(ctx ligo.Context) error {
+    user, ok := ctx.Get(service.ContextKeyUser).(service.User)
+    if !ok {
+        return usecase.ErrUnauthorized
+    }
+
+    if user.IsAdmin() {
+        // admin-only logic
+    }
+
+    return ctx.OK(map[string]string{"id": user.GetID()})
+}
+```
+
+## Error Types
+
+Errors are defined in `internal/usecase/errors.go`:
+
+```go
+var (
+    ErrUnauthorized = errors.New("unauthorized")
+    ErrForbidden    = errors.New("forbidden")
+    ErrNotFound     = errors.New("resource not found")
+    ErrValidation   = errors.New("validation failed")
+)
+```
+
+`ExceptionMiddleware` maps these to HTTP status codes (401, 403, 404, 400).
+
+## Audit Logging
+
+Admin actions are automatically logged by `middleware.AuditMiddleware`:
+
+```go
+middleware.AuditMiddleware(log)
+
+// Logs: Admin action performed | admin_id=1 | action=DELETE | path=/users/2 | success=true
+```
+
+Apply it per-route:
 
 ```go
 cr.DELETE("/:id", c.Delete).
-    Guard(auth.AuthGuard(authService), ligo.RolesGuard(auth.ContextKeyUser, "admin"))
-```
-
-## Protected Routes
-
-```go
-cr.GET("/users/:id", c.GetUser).
-    Guard(auth.AuthGuard(authService))  // Requires auth
+    Guard(authGuard, adminGuard).
+    Use(middleware.AuditMiddleware(log)).
     Handle()
-
-cr.DELETE("/users/:id", c.DeleteUser).
-    Guard(auth.AuthGuard(authService), ligo.RolesGuard(auth.ContextKeyUser, "admin"))  // Requires admin
-    Handle()
-```
-
-## User Model
-
-```go
-type User struct {
-    ID    string
-    Name  string
-    Email string
-    Role  string  // "user" or "admin"
-}
 ```
 
 ## Production Recommendations
 
-### 1. Replace with JWT
+### Replace with real JWT
 
 ```go
 import "github.com/golang-jwt/jwt/v5"
 
-func JWTGuard(secret string) ligo.Guard {
-    return func(ctx ligo.Context) (bool, error) {
-        tokenString := strings.TrimPrefix(ctx.Request().Header.Get("Authorization"), "Bearer ")
-
-        token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-            return []byte(secret), nil
-        })
-
-        if err != nil || !token.Valid {
-            return false, common.ErrUnauthorized
-        }
-
-        claims := token.Claims.(jwt.MapClaims)
-        user := &User{
-            ID:   claims["sub"].(string),
-            Role: claims["role"].(string),
-        }
-        ctx.Set(auth.ContextKeyUser, user)
-
-        return true, nil
+func (j *JWTAuth) ValidateToken(token string) (service.User, error) {
+    t, err := jwt.Parse(token, func(t *jwt.Token) (interface{}, error) {
+        return []byte(j.secret), nil
+    })
+    if err != nil || !t.Valid {
+        return nil, usecase.ErrUnauthorized
     }
+
+    claims := t.Claims.(jwt.MapClaims)
+    return &entity.User{
+        ID:   claims["sub"].(string),
+        Role: claims["role"].(string),
+    }, nil
 }
 ```
 
-### 2. Add Password Hashing
+### Use environment variables for secrets
 
 ```go
-import "golang.org/x/crypto/bcrypt"
-
-func HashPassword(password string) (string, error) {
-    bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
-    return string(bytes), err
+cfg.JWTSecret = os.Getenv("JWT_SECRET")
+if cfg.JWTSecret == "" {
+    log.Fatal("JWT_SECRET is required")
 }
-
-func CheckPassword(password, hash string) bool {
-    err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
-    return err == nil
-}
-```
-
-### 3. Use Environment Variables
-
-```go
-jwtSecret := os.Getenv("JWT_SECRET")
-if jwtSecret == "" {
-    log.Fatal("JWT_SECRET environment variable is required")
-}
-```
-
-### 4. Add Token Refresh
-
-Implement refresh token rotation for better security.
-
-## Audit Trail
-
-All admin actions are logged via `AuditInterceptor`:
-
-```
-Admin action performed | admin_id=admin123 | action=DELETE | path=/users/456 | success=true
-```
-
-Enable in your routes:
-
-```go
-Intercept(common.LoggingInterceptor(log), auth.AuditInterceptor(log))
 ```

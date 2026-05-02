@@ -2,96 +2,111 @@
 
 ## Overview
 
-This boilerplate follows a modular architecture using the Ligo framework. Each feature is organized as an independent module with its own controllers, services, and repositories.
+This boilerplate follows **Clean Architecture + Repository Pattern** using the Ligo framework.
+Business logic is isolated from infrastructure concerns — the domain layer has zero external dependencies.
 
 ## Layer Structure
 
 ```
-┌─────────────────────────────────────────────────────┐
-│                    Controllers                       │
-│  (HTTP handlers, request/response, route guards)    │
-└─────────────────────────────────────────────────────┘
-                         ↓
-┌─────────────────────────────────────────────────────┐
-│                     Services                         │
-│           (Business logic, validation)               │
-└─────────────────────────────────────────────────────┘
-                         ↓
-┌─────────────────────────────────────────────────────┐
-│                   Repositories                       │
-│              (Data access, storage)                  │
-└─────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────┐
+│                        cmd/api/                           │
+│           Entry point — wires all layers together         │
+└──────────────────────────────────────────────────────────┘
+                             ↓
+┌──────────────────────────────────────────────────────────┐
+│                     infrastructure/                       │
+│  HTTP controllers, middleware, auth, persistence impls    │
+└──────────────────────────────────────────────────────────┘
+                             ↓
+┌──────────────────────────────────────────────────────────┐
+│                       usecase/                            │
+│        Application business logic, orchestration          │
+└──────────────────────────────────────────────────────────┘
+                             ↓
+┌──────────────────────────────────────────────────────────┐
+│                        domain/                            │
+│   Entities, repository interfaces, service interfaces     │
+│              NO external dependencies                     │
+└──────────────────────────────────────────────────────────┘
+```
+
+## Dependency Flow
+
+```
+cmd → infrastructure → usecase → domain
+                                  ↑
+                           (never reversed)
+```
+
+## Layer Responsibilities
+
+| Layer | Package | Purpose | Depends On |
+|-------|---------|---------|------------|
+| Domain | `internal/domain/` | Entities, interfaces | Nothing |
+| UseCase | `internal/usecase/` | Business logic, orchestration | domain |
+| Infrastructure | `internal/infrastructure/` | HTTP, DB, auth, external services | domain, usecase |
+| Entry | `cmd/api/` | Wiring, configuration | All |
+
+## Directory Layout
+
+```
+internal/
+├── domain/
+│   ├── entity/        # Pure business entities (User, File)
+│   ├── repository/    # Repository interfaces — contracts for data access
+│   └── service/       # Domain service interfaces (AuthService, roles)
+│
+├── usecase/
+│   ├── user.go        # User business logic
+│   ├── file.go        # File business logic
+│   ├── errors.go      # Common use case errors
+│   └── dto/
+│       ├── create_user.go
+│       └── update_user.go
+│
+├── infrastructure/
+│   ├── auth/
+│   │   ├── jwt.go     # JWTAuth — implements domain/service.AuthService
+│   │   └── guard.go   # AuthGuard, AdminGuard
+│   ├── http/
+│   │   ├── controller/   # HTTP handlers — call usecases
+│   │   ├── middleware/   # Exception handling, logging, audit
+│   │   ├── presenter/    # Response formatting
+│   │   └── validator/    # Request validation
+│   └── persistence/
+│       └── memory/    # In-memory repository implementations
+│           ├── user_repo.go  # implements domain/repository.UserRepository
+│           └── file_repo.go  # implements domain/repository.FileRepository
+│
+├── module/            # Wires layers into Ligo modules
+└── config/            # Application configuration
 ```
 
 ## Request Flow
 
 ```
-Request → Middleware → Guards → Interceptors → Controller → Service → Repository
-                                    ↑              ↓
-                                  Filters         Response
+HTTP Request
+    → Global Middleware (CORS, recovery)
+    → Route Middleware (logging, exception)
+    → Guards (auth, admin)
+    → Controller (parse request)
+    → UseCase (business logic)
+    → Repository (data access)
+    → Response
 ```
 
-### Middleware
+## Key Principles
 
-Global middleware applies to all routes:
-- `RecoveryMiddleware` - Panic recovery
-- `CORSMiddleware` - Cross-origin headers
+**1. Domain isolation** — `internal/domain/` imports nothing from this project. Entities are plain structs; repository contracts are interfaces.
 
-### Guards
+**2. Dependency inversion** — UseCases depend on repository *interfaces* (defined in domain), not concrete implementations. Swap `memory` → `postgres` without touching business logic.
 
-Authorization checks before handler execution:
-- `AuthGuard` - Requires valid JWT
-- `AdminGuard` - Requires admin role
-- `RolesGuard` - Custom role-based guard
-
-### Interceptors
-
-Around-advice for cross-cutting concerns:
-- `LoggingInterceptor` - Request/response logging
-- `AuditInterceptor` - Admin action audit trail
-
-### Filters
-
-Exception handling and response transformation:
-- `GlobalExceptionFilter` - Converts errors to HTTP responses
-
-## Dependency Injection
-
-Ligo's container manages dependencies automatically:
+**3. Factory functions for controllers** — Ligo's `ligo.Controllers()` expects factory functions so the DI binder can call them via reflection:
 
 ```go
-ligo.Providers(
-    ligo.Factory[*UserService](NewUserService),
-    ligo.Factory[*UserRepository](NewUserRepository),
+ligo.Controllers(
+    func() ligo.Controller { return controller.NewUserController(uc, log) },
 )
 ```
 
-Controllers receive dependencies via constructor injection.
-
-## Module System
-
-Each module exports:
-- **Providers** - Services, repositories, dependencies
-- **Controllers** - HTTP handlers
-- **Imports** - Required modules
-
-```go
-func Module() ligo.Module {
-    return ligo.NewModule("user",
-        ligo.Imports(auth.Module()),
-        ligo.Providers(...),
-        ligo.Controllers(...),
-    )
-}
-```
-
-## Common Package
-
-Shared utilities in `internal/common/`:
-
-| File | Purpose |
-|------|---------|
-| `errors.go` | Standard error types |
-| `filter.go` | Global exception filter |
-| `interceptor.go` | Logging interceptor |
-| `version.go` | Application version |
+**4. Manual wiring in modules** — Each module function (`module.User(cfg, log)`) manually constructs its dependency graph. This is explicit and testable without a DI framework.

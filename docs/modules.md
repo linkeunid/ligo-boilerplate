@@ -2,99 +2,125 @@
 
 ## Creating a New Module
 
-### 1. Create Package Directory
+Follow Clean Architecture: define the domain first, then work outward.
 
-```bash
-mkdir internal/product
-```
-
-### 2. Define Files
-
-```
-internal/product/
-├── controller.go    # HTTP handlers
-├── service.go       # Business logic
-├── repository.go    # Data access
-└── module.go        # Module definition
-```
-
-### 3. Implement Repository
+### 1. Domain — entity and repository interface
 
 ```go
-// repository.go
-type ProductRepository struct {
-    products map[string]*Product
+// internal/domain/entity/product.go
+package entity
+
+type Product struct {
+    ID    string
+    Name  string
+    Price float64
+}
+```
+
+```go
+// internal/domain/repository/product.go
+package repository
+
+import "github.com/linkeunid/ligo-boilerplate/internal/domain/entity"
+
+type ProductRepository interface {
+    FindByID(id string) (*entity.Product, bool)
+    FindAll() []*entity.Product
+    Create(name string, price float64) *entity.Product
+    Delete(id string) bool
+}
+```
+
+### 2. UseCase — business logic
+
+```go
+// internal/usecase/product.go
+package usecase
+
+import (
+    "github.com/linkeunid/ligo"
+    "github.com/linkeunid/ligo-boilerplate/internal/domain/entity"
+    "github.com/linkeunid/ligo-boilerplate/internal/domain/repository"
+)
+
+type ProductUseCase struct {
+    repo repository.ProductRepository
+    log  ligo.Logger
 }
 
-func NewProductRepository() *ProductRepository {
-    return &ProductRepository{
-        products: make(map[string]*Product),
+func NewProductUseCase(repo repository.ProductRepository, log ligo.Logger) *ProductUseCase {
+    return &ProductUseCase{repo: repo, log: log}
+}
+
+func (uc *ProductUseCase) GetProduct(id string) (*entity.Product, error) {
+    p, found := uc.repo.FindByID(id)
+    if !found {
+        return nil, ErrNotFound
     }
+    return p, nil
+}
+```
+
+### 3. Persistence — repository implementation
+
+```go
+// internal/infrastructure/persistence/memory/product_repo.go
+package memory
+
+import (
+    "sync"
+    "github.com/linkeunid/ligo-boilerplate/internal/domain/entity"
+    "github.com/linkeunid/ligo-boilerplate/internal/domain/repository"
+)
+
+type ProductRepository struct {
+    mu       sync.RWMutex
+    products map[string]*entity.Product
 }
 
-func (r *ProductRepository) FindByID(id string) (*Product, bool) {
+func NewProductRepository() repository.ProductRepository {
+    return &ProductRepository{products: make(map[string]*entity.Product)}
+}
+
+func (r *ProductRepository) FindByID(id string) (*entity.Product, bool) {
+    r.mu.RLock()
+    defer r.mu.RUnlock()
     p, found := r.products[id]
     return p, found
 }
 
-func (r *ProductRepository) Save(product *Product) {
-    r.products[product.ID] = product
-}
+// ... implement remaining interface methods
 ```
 
-### 4. Implement Service
+### 4. Controller — HTTP handler
 
 ```go
-// service.go
-type ProductService struct {
-    repo *ProductRepository
-    log  ligo.Logger
-}
+// internal/infrastructure/http/controller/product.go
+package controller
 
-func NewProductService(repo *ProductRepository, log ligo.Logger) *ProductService {
-    return &ProductService{repo: repo, log: log}
-}
+import (
+    "github.com/linkeunid/ligo"
+    "github.com/linkeunid/ligo-boilerplate/internal/usecase"
+)
 
-func (s *ProductService) GetProduct(id string) (*Product, error) {
-    product, found := s.repo.FindByID(id)
-    if !found {
-        return nil, common.ErrNotFound
-    }
-    return product, nil
-}
-```
-
-### 5. Implement Controller
-
-```go
-// controller.go
-type Controller struct {
-    svc *ProductService
+type ProductController struct {
+    uc  *usecase.ProductUseCase
     log ligo.Logger
 }
 
-func NewController(svc *ProductService, log ligo.Logger) ligo.Controller {
-    return &Controller{svc: svc, log: log}
+func NewProductController(uc *usecase.ProductUseCase, log ligo.Logger) *ProductController {
+    return &ProductController{uc: uc, log: log}
 }
 
-func (c *Controller) Routes(r ligo.Router) {
+func (c *ProductController) Routes(r ligo.Router) {
     cr := ligo.NewChainRouter(r.Group("/products"))
-
-    cr.GET("", c.ListProducts).
-        Filter(common.GlobalExceptionFilter(c.log)).
-        Intercept(common.LoggingInterceptor(c.log)).
-        Handle()
-
-    cr.GET("/:id", c.GetProduct).
-        Filter(common.GlobalExceptionFilter(c.log)).
-        Guard(auth.AuthGuard(authService)).
-        Intercept(common.LoggingInterceptor(c.log)).
-        Handle()
+    cr.GET("", c.ListProducts).Handle()
+    cr.GET("/:id", c.GetProduct).Handle()
 }
 
-func (c *Controller) GetProduct(ctx ligo.Context) error {
+func (c *ProductController) GetProduct(ctx ligo.Context) error {
     id := ctx.Param("id")
-    product, err := c.svc.GetProduct(id)
+    product, err := c.uc.GetProduct(id)
     if err != nil {
         return err
     }
@@ -102,50 +128,98 @@ func (c *Controller) GetProduct(ctx ligo.Context) error {
 }
 ```
 
-### 6. Define Module
+### 5. Module — wire the layers
 
 ```go
-// module.go
-func Module() ligo.Module {
+// internal/module/product.go
+package module
+
+import (
+    "github.com/linkeunid/ligo"
+    "github.com/linkeunid/ligo-boilerplate/internal/config"
+    "github.com/linkeunid/ligo-boilerplate/internal/infrastructure/http/controller"
+    "github.com/linkeunid/ligo-boilerplate/internal/infrastructure/http/middleware"
+    "github.com/linkeunid/ligo-boilerplate/internal/infrastructure/persistence/memory"
+    "github.com/linkeunid/ligo-boilerplate/internal/usecase"
+)
+
+func Product(cfg *config.Config, log ligo.Logger) ligo.Module {
+    repo := memory.NewProductRepository()
+    uc := usecase.NewProductUseCase(repo, log)
+
     return ligo.NewModule("product",
-        ligo.Imports(auth.Module()),
-        ligo.Providers(
-            ligo.Export(ligo.Factory[*ProductRepository](NewProductRepository)),
-            ligo.Export(ligo.Factory[*ProductService](NewProductService)),
-        ),
         ligo.Controllers(
-            func(svc *ProductService, log ligo.Logger) ligo.Controller {
-                return NewController(svc, log)
+            func() ligo.Controller { return controller.NewProductController(uc, log) },
+        ),
+    )
+}
+```
+
+> **Note:** `ligo.Controllers()` requires factory functions — wrap constructors in a closure. The binder calls the function via reflection to bind routes.
+
+### 6. Register in main
+
+```go
+// cmd/api/main.go
+app.Register(
+    module.Product(cfg, log),
+    // ...
+)
+```
+
+## Adding Auth Guards
+
+```go
+import (
+    infraauth "github.com/linkeunid/ligo-boilerplate/internal/infrastructure/auth"
+    "github.com/linkeunid/ligo-boilerplate/internal/infrastructure/http/middleware"
+)
+
+func Product(cfg *config.Config, log ligo.Logger) ligo.Module {
+    repo := memory.NewProductRepository()
+    uc := usecase.NewProductUseCase(repo, log)
+    authSvc := infraauth.NewJWTAuth(log)
+
+    type productRoutes struct {
+        ctrl        *controller.ProductController
+        authGuard   ligo.Guard
+        exceptionMW ligo.Middleware
+    }
+
+    routes := &productRoutes{
+        ctrl:        controller.NewProductController(uc, log),
+        authGuard:   infraauth.AuthGuard(authSvc),
+        exceptionMW: middleware.ExceptionMiddleware(log),
+    }
+
+    return ligo.NewModule("product",
+        ligo.Controllers(
+            func() ligo.Controller {
+                return &struct{ *productRoutes }{routes}
             },
         ),
     )
 }
 ```
 
-### 7. Register in Main
-
-```go
-app.Register(
-    auth.Module(),
-    product.Module(),
-)
-```
-
-## Module Features
-
-| Feature | Description | Example |
-|---------|-------------|---------|
-| **Guards** | Pre-handler authorization | `Guard(auth.AuthGuard())` |
-| **Filters** | Exception handling | `Filter(common.GlobalExceptionFilter())` |
-| **Interceptors** | Around-advice logic | `Intercept(common.LoggingInterceptor())` |
-| **Pipes** | Request transformation | `Pipe(ValidationPipe())` |
-
 ## Existing Modules
 
-| Module | Purpose | Endpoints |
+| Module | Function | Endpoints |
 |--------|---------|-----------|
-| `auth` | Authentication/authorization | Guards, interceptors |
-| `user` | User CRUD | `/users/*` |
-| `file` | File upload/download | `/files/*` |
-| `health` | Health check | `/health` |
-| `root` | API info | `/` |
+| `auth` | `module.Auth(cfg, log)` | Provides `AuthService` |
+| `user` | `module.User(cfg, log)` | `/users/*` |
+| `file` | `module.File(cfg, log)` | `/files/*` |
+| `health` | `module.Health(cfg)` | `/health` |
+| `root` | `module.Root(cfg)` | `/` |
+
+## Swapping Persistence
+
+The repository pattern means replacing the storage backend requires only changing the concrete implementation in the module — the domain and usecase layers are untouched:
+
+```go
+// From in-memory:
+repo := memory.NewProductRepository()
+
+// To PostgreSQL (when implemented):
+repo := postgres.NewProductRepository(db)
+```
