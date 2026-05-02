@@ -6,6 +6,7 @@ import (
 	"github.com/linkeunid/ligo-boilerplate/internal/domain/entity"
 	"github.com/linkeunid/ligo-boilerplate/internal/domain/repository"
 	"github.com/linkeunid/ligo-boilerplate/internal/infrastructure/http/controller"
+	"github.com/linkeunid/ligo-boilerplate/internal/infrastructure/http/presenter"
 	"github.com/linkeunid/ligo-boilerplate/internal/infrastructure/persistence/memory"
 	"github.com/linkeunid/ligo-boilerplate/internal/usecase"
 )
@@ -15,6 +16,7 @@ func UserModule() ligo.Module {
 	return ligo.NewModule("user",
 		ligo.Providers(
 			ligomemory.Provider[int, *entity.User](),
+			ligo.Factory[*presenter.UserPresenter](presenter.NewUserPresenter),
 			ligo.Factory[repository.UserRepository](memory.NewUserRepository),
 			ligo.Factory[*usecase.UserUseCase](usecase.NewUserUseCase),
 		),
