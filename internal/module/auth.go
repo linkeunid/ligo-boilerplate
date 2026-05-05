@@ -13,5 +13,17 @@ func AuthModule() ligo.Module {
 			// ligo.Logger is auto-registered; JWTAuth receives it via DI
 			ligo.Export(ligo.Factory[*infraauth.JWTAuth](infraauth.NewJWTAuth)),
 		),
+		// Module-level init hook: runs when auth module initializes
+		ligo.OnModuleInit(func() error {
+			// Module-level hooks don't support DI injection
+			// Provider-level hooks (JWTAuth.OnModuleInit) handle logging
+			return nil
+		}),
+		// Module-level destroy hook: runs when auth module destroys
+		ligo.OnModuleDestroy(func() error {
+			// Module-level hooks don't support DI injection
+			// Provider-level hooks (JWTAuth.OnApplicationShutdown) handle logging
+			return nil
+		}),
 	)
 }

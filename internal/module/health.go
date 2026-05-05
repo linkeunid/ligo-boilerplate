@@ -8,6 +8,17 @@ import (
 // Health returns the health check module.
 func HealthModule() ligo.Module {
 	return ligo.NewModule("health",
-		ligo.Controllers(controller.NewHealthController),
+		// Use HookedController for compile-time safe hook registration.
+		ligo.Controllers(ligo.HookedController(controller.NewHealthController)),
+		// Module-level init hook: runs when health module initializes
+		ligo.OnModuleInit(func() error {
+			// Controller-level hooks handle logging
+			return nil
+		}),
+		// Module-level destroy hook: runs when health module destroys
+		ligo.OnModuleDestroy(func() error {
+			// Controller-level hooks handle logging
+			return nil
+		}),
 	)
 }

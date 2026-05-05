@@ -105,6 +105,16 @@ HTTP Request
 
 `ExceptionMiddleware` catches all errors, logs them, and maps them to HTTP responses. See [Authentication](authentication.md) for the full error → status code mapping.
 
+## Lifecycle Hooks
+
+The boilerplate demonstrates Ligo's lifecycle hook system at three levels:
+
+- **Application-level** (`OnStart`/`OnStop` in `main.go`)
+- **Module-level** (`OnModuleInit`/`OnModuleDestroy` in module definitions)
+- **Provider/Controller-level** (via interface implementations or `HookedFactory`/`HookedController`)
+
+See [Lifecycle Hooks](lifecycle.md) for details on hook patterns, execution order, and examples.
+
 ## Key Principles
 
 **1. Domain isolation** — `internal/domain/` imports nothing from this project. Entities are plain structs; repository contracts are interfaces.

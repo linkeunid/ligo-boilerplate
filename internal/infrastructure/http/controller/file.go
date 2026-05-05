@@ -30,6 +30,42 @@ func NewFileController(uc *usecase.FileUseCase, cfg *config.Config, log ligo.Log
 	}
 }
 
+// Initialize is called when the file module initializes.
+func (c *FileController) Initialize() error {
+	c.log.Info("File controller initializing",
+		ligo.LoggerField{Key: "upload_dir", Value: c.cfg.UploadDir},
+		ligo.LoggerField{Key: "max_file_size", Value: c.cfg.MaxFileSize},
+	)
+	return nil
+}
+
+// Ready is called after all modules initialize, before serving.
+func (c *FileController) Ready() error {
+	c.log.Info("File controller ready to handle requests")
+	return nil
+}
+
+// Draining is called before shutdown begins.
+func (c *FileController) Draining() error {
+	c.log.Info("File controller draining - stopping new file uploads")
+	return nil
+}
+
+// Shutdown is called during shutdown.
+func (c *FileController) Shutdown() error {
+	c.log.Info("File controller shutting down")
+	return nil
+}
+
+// Register implements the Registerable interface for compile-time safe hook registration.
+// This method is called automatically when using ligo.HookedController.
+func (c *FileController) Register(registry *ligo.HookRegistry) {
+	registry.OnInit(c.Initialize)
+	registry.OnBootstrap(c.Ready)
+	registry.BeforeShutdown(c.Draining)
+	registry.OnShutdown(c.Shutdown)
+}
+
 // Routes registers all routes for the file controller.
 func (c *FileController) Routes(r ligo.Router) {
 	cr := ligo.NewChainRouter(r.Group("/files"))

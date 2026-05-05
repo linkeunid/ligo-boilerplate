@@ -16,6 +16,38 @@ func NewRootController(cfg *config.Config, log ligo.Logger) *RootController {
 	return &RootController{cfg: cfg, log: log}
 }
 
+// Initialize is called when the root module initializes.
+func (c *RootController) Initialize() error {
+	c.log.Info("Root controller initializing")
+	return nil
+}
+
+// Ready is called after all modules initialize, before serving.
+func (c *RootController) Ready() error {
+	c.log.Info("Root controller ready")
+	return nil
+}
+
+// Draining is called before shutdown begins.
+func (c *RootController) Draining() error {
+	c.log.Info("Root controller draining")
+	return nil
+}
+
+// Shutdown is called during shutdown.
+func (c *RootController) Shutdown() error {
+	c.log.Info("Root controller shutting down")
+	return nil
+}
+
+// Register implements the Registerable interface for compile-time safe hook registration.
+func (c *RootController) Register(registry *ligo.HookRegistry) {
+	registry.OnInit(c.Initialize)
+	registry.OnBootstrap(c.Ready)
+	registry.BeforeShutdown(c.Draining)
+	registry.OnShutdown(c.Shutdown)
+}
+
 // Routes registers all routes for the root controller.
 func (c *RootController) Routes(r ligo.Router) {
 	r.Handle("GET", "/", c.Info)
@@ -46,11 +78,11 @@ func (c *RootController) Info(ctx ligo.Context) error {
 			"DELETE /files/:id":    "Delete file",
 		},
 		"examples": map[string]string{
-			"list_users":   `curl http://localhost:8080/users`,
-			"get_user":     `curl -H "Authorization: Bearer user:secret" http://localhost:8080/users/<id>`,
-			"create_user":  `curl -X POST -H "Authorization: Bearer user:secret" -H "Content-Type: application/json" -d '{"name":"Alice","email":"alice@example.com"}' http://localhost:8080/users`,
-			"update_user":  `curl -X PUT -H "Authorization: Bearer user:secret" -H "Content-Type: application/json" -d '{"name":"Alice Updated"}' http://localhost:8080/users/<id>`,
-			"delete_user":  `curl -X DELETE -H "Authorization: Bearer admin:secret" http://localhost:8080/users/<id>`,
+			"list_users":  `curl http://localhost:8080/users`,
+			"get_user":    `curl -H "Authorization: Bearer user:secret" http://localhost:8080/users/<id>`,
+			"create_user": `curl -X POST -H "Authorization: Bearer user:secret" -H "Content-Type: application/json" -d '{"name":"Alice","email":"alice@example.com"}' http://localhost:8080/users`,
+			"update_user": `curl -X PUT -H "Authorization: Bearer user:secret" -H "Content-Type: application/json" -d '{"name":"Alice Updated"}' http://localhost:8080/users/<id>`,
+			"delete_user": `curl -X DELETE -H "Authorization: Bearer admin:secret" http://localhost:8080/users/<id>`,
 		},
 	})
 }

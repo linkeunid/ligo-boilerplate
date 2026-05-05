@@ -155,6 +155,8 @@ func Product() ligo.Module {
 
 `ligo.Controllers()` accepts the constructor directly. The DI binder resolves its parameters (`*usecase.ProductUseCase`, `ligo.Logger`) from the container at startup.
 
+**Note:** For lifecycle hooks on providers/controllers, see [Lifecycle Hooks](lifecycle.md).
+
 ### 6. Register in main
 
 ```go

@@ -22,8 +22,24 @@ type FileRepository struct {
 
 // NewFileRepository creates a new in-memory file repository.
 func NewFileRepository(dir string, store *ligomemory.Store[int, *entity.File]) repository.FileRepository {
-	os.MkdirAll(dir, 0755)
 	return &FileRepository{store: store, dir: dir}
+}
+
+// OnModuleInit initializes the file repository by creating the upload directory.
+func (r *FileRepository) OnModuleInit() error {
+	if err := os.MkdirAll(r.dir, 0755); err != nil {
+		return fmt.Errorf("failed to create upload directory: %w", err)
+	}
+	return nil
+}
+
+// OnModuleDestroy cleans up resources when the module is destroyed.
+// This is called in reverse order during shutdown.
+func (r *FileRepository) OnModuleDestroy() error {
+	// Optional: Cleanup uploaded files on shutdown
+	// Uncomment if you want to clean up on shutdown:
+	// return os.RemoveAll(r.dir)
+	return nil
 }
 
 func (r *FileRepository) Save(file io.Reader, filename string) (*entity.File, error) {

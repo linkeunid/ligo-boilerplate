@@ -54,3 +54,19 @@ func (j *JWTAuth) ValidateToken(token string) (service.User, error) {
 		return nil, usecase.ErrUnauthorized
 	}
 }
+
+// OnModuleInit is called when the auth module initializes.
+// Use this for validation checks, loading keys, etc.
+func (j *JWTAuth) OnModuleInit() error {
+	j.log.Info("JWT authentication initialized")
+	// In production, validate JWT keys, load certificates, etc.
+	return nil
+}
+
+// OnApplicationShutdown is called during application shutdown.
+// Use this for cleanup, closing connections, etc.
+func (j *JWTAuth) OnApplicationShutdown() error {
+	j.log.Info("JWT authentication shutting down")
+	// In production, close connections, release resources, etc.
+	return nil
+}
