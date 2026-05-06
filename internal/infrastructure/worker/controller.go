@@ -52,6 +52,9 @@ func (c *Controller) Start() error {
 
 func (c *Controller) Drain() error {
 	c.log.Info("Worker controller draining - waiting for current work to complete")
+	if c.cancel != nil {
+		c.cancel()
+	}
 	c.wg.Wait()
 	c.log.Info("Worker controller drained")
 	return nil
@@ -66,10 +69,10 @@ func (c *Controller) Stop() error {
 	}
 
 	c.log.Info("Worker controller stopping worker")
+	c.running.Store(false)
 	if c.cancel != nil {
 		c.cancel()
 	}
-	c.running.Store(false)
 	c.wg.Wait()
 	c.log.Info("Worker controller stopped")
 	return nil
