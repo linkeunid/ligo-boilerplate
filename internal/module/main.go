@@ -14,3 +14,11 @@ func MainModule() ligo.Module {
 		),
 	)
 }
+
+func RunnerModule() ligo.Module {
+	return ligo.NewModule("runner",
+		ligo.Imports(
+			WorkerModule(),
+		),
+	)
+}
