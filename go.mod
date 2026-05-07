@@ -8,8 +8,6 @@ require (
 	github.com/linkeunid/ligo-memory v0.1.0
 )
 
-replace github.com/linkeunid/ligo => ../ligo
-
 require (
 	github.com/gabriel-vasile/mimetype v1.4.13 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
