@@ -4,9 +4,11 @@ go 1.25.9
 
 require (
 	github.com/go-playground/validator/v10 v10.30.2
-	github.com/linkeunid/ligo v0.5.0
+	github.com/linkeunid/ligo v0.6.0
 	github.com/linkeunid/ligo-memory v0.1.0
 )
+
+replace github.com/linkeunid/ligo => ../ligo
 
 require (
 	github.com/gabriel-vasile/mimetype v1.4.13 // indirect
