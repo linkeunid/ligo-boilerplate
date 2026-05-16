@@ -4,7 +4,11 @@ go 1.25.9
 
 require (
 	github.com/go-playground/validator/v10 v10.30.2
+<<<<<<< Updated upstream
 	github.com/linkeunid/ligo v0.6.0
+=======
+	github.com/linkeunid/ligo v0.7.0
+>>>>>>> Stashed changes
 	github.com/linkeunid/ligo-memory v0.1.0
 )
 
