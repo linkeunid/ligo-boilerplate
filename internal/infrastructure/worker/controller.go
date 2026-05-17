@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/linkeunid/ligo"
+
 	"github.com/linkeunid/ligo-boilerplate/internal/usecase"
 )
 

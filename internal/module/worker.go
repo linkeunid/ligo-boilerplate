@@ -2,6 +2,7 @@ package module
 
 import (
 	"github.com/linkeunid/ligo"
+
 	"github.com/linkeunid/ligo-boilerplate/internal/infrastructure/worker"
 	"github.com/linkeunid/ligo-boilerplate/internal/usecase"
 )

@@ -1,13 +1,15 @@
 package main
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/linkeunid/ligo"
+	"github.com/linkeunid/ligo/adapters/echo"
+
 	"github.com/linkeunid/ligo-boilerplate/internal/config"
 	"github.com/linkeunid/ligo-boilerplate/internal/infrastructure/http/middleware"
 	"github.com/linkeunid/ligo-boilerplate/internal/module"
-	"github.com/linkeunid/ligo/adapters/echo"
 )
 
 func main() {
@@ -45,7 +47,7 @@ func main() {
 	app.Register(module.MainModule())
 
 	if err := app.Run(); err != nil {
-		if err != http.ErrServerClosed {
+		if !errors.Is(err, http.ErrServerClosed) {
 			panic(err)
 		}
 	}

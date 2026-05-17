@@ -8,9 +8,10 @@ import (
 	"path/filepath"
 	"time"
 
+	ligomemory "github.com/linkeunid/ligo-memory"
+
 	"github.com/linkeunid/ligo-boilerplate/internal/domain/entity"
 	"github.com/linkeunid/ligo-boilerplate/internal/domain/repository"
-	ligomemory "github.com/linkeunid/ligo-memory"
 )
 
 // FileRepository is an in-memory implementation of repository.FileRepository.

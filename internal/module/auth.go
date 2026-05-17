@@ -2,6 +2,7 @@ package module
 
 import (
 	"github.com/linkeunid/ligo"
+
 	infraauth "github.com/linkeunid/ligo-boilerplate/internal/infrastructure/auth"
 )
 

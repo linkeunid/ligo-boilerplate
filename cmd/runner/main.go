@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/linkeunid/ligo"
+
 	"github.com/linkeunid/ligo-boilerplate/internal/config"
 	"github.com/linkeunid/ligo-boilerplate/internal/module"
 )

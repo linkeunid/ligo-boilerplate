@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/linkeunid/ligo"
+
 	"github.com/linkeunid/ligo-boilerplate/internal/domain/entity"
 	"github.com/linkeunid/ligo-boilerplate/internal/domain/service"
 	"github.com/linkeunid/ligo-boilerplate/internal/usecase"

@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"github.com/linkeunid/ligo"
+
 	"github.com/linkeunid/ligo-boilerplate/internal/domain/entity"
 	"github.com/linkeunid/ligo-boilerplate/internal/domain/repository"
 	"github.com/linkeunid/ligo-boilerplate/internal/usecase/dto"

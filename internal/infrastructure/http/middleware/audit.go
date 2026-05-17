@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"github.com/linkeunid/ligo"
+
 	"github.com/linkeunid/ligo-boilerplate/internal/domain/service"
 )
 

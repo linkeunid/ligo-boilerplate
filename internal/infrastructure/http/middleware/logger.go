@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/go-playground/validator/v10"
-
 	"github.com/linkeunid/ligo"
+
 	"github.com/linkeunid/ligo-boilerplate/internal/usecase"
 )
 

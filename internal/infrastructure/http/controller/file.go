@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/linkeunid/ligo"
+
 	"github.com/linkeunid/ligo-boilerplate/internal/config"
 	"github.com/linkeunid/ligo-boilerplate/internal/infrastructure/http/middleware"
 	"github.com/linkeunid/ligo-boilerplate/internal/usecase"

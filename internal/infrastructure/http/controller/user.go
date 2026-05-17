@@ -2,6 +2,7 @@ package controller
 
 import (
 	"github.com/linkeunid/ligo"
+
 	infraauth "github.com/linkeunid/ligo-boilerplate/internal/infrastructure/auth"
 	"github.com/linkeunid/ligo-boilerplate/internal/infrastructure/http/middleware"
 	"github.com/linkeunid/ligo-boilerplate/internal/infrastructure/http/presenter"
