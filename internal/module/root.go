@@ -7,7 +7,8 @@ import (
 
 // Root returns the root API info module.
 func RootModule() ligo.Module {
-	return ligo.NewModule("root",
+	return ligo.NewModule(
+		"root",
 		// Use HookedController for compile-time safe hook registration.
 		ligo.Controllers(ligo.HookedController(controller.NewRootController)),
 		// Module-level init hook: runs when root module initializes

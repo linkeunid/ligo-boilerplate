@@ -15,7 +15,8 @@ func main() {
 	app := ligo.New(
 		ligo.WithLogger(log),
 		ligo.OnStart(func(ctx any) error {
-			log.Info("Runner starting",
+			log.Info(
+				"Runner starting",
 				ligo.LoggerField{Key: "version", Value: cfg.Version},
 			)
 			return nil

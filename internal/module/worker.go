@@ -7,7 +7,8 @@ import (
 )
 
 func WorkerModule() ligo.Module {
-	return ligo.NewModule("worker",
+	return ligo.NewModule(
+		"worker",
 		ligo.Providers(
 			ligo.Factory[*usecase.WorkerUseCase](usecase.NewWorkerUseCase),
 		),

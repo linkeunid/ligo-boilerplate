@@ -2,9 +2,9 @@ package memory
 
 import (
 	"github.com/linkeunid/ligo"
-	ligomemory "github.com/linkeunid/ligo-memory"
 	"github.com/linkeunid/ligo-boilerplate/internal/domain/entity"
 	"github.com/linkeunid/ligo-boilerplate/internal/domain/repository"
+	ligomemory "github.com/linkeunid/ligo-memory"
 )
 
 // UserRepository is an in-memory implementation of repository.UserRepository

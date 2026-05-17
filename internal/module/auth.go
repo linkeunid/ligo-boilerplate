@@ -8,7 +8,8 @@ import (
 // Auth returns the authentication module.
 // Exports *infraauth.JWTAuth as a singleton for injection into other modules.
 func AuthModule() ligo.Module {
-	return ligo.NewModule("auth",
+	return ligo.NewModule(
+		"auth",
 		ligo.Providers(
 			// ligo.Logger is auto-registered; JWTAuth receives it via DI
 			ligo.Export(ligo.Factory[*infraauth.JWTAuth](infraauth.NewJWTAuth)),

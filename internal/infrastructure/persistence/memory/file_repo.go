@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"time"
 
-	ligomemory "github.com/linkeunid/ligo-memory"
 	"github.com/linkeunid/ligo-boilerplate/internal/domain/entity"
 	"github.com/linkeunid/ligo-boilerplate/internal/domain/repository"
+	ligomemory "github.com/linkeunid/ligo-memory"
 )
 
 // FileRepository is an in-memory implementation of repository.FileRepository.
@@ -27,7 +27,7 @@ func NewFileRepository(dir string, store *ligomemory.Store[int, *entity.File]) r
 
 // OnModuleInit initializes the file repository by creating the upload directory.
 func (r *FileRepository) OnModuleInit() error {
-	if err := os.MkdirAll(r.dir, 0755); err != nil {
+	if err := os.MkdirAll(r.dir, 0o755); err != nil {
 		return fmt.Errorf("failed to create upload directory: %w", err)
 	}
 	return nil
@@ -51,7 +51,7 @@ func (r *FileRepository) Save(file io.Reader, filename string) (*entity.File, er
 	id := nextID()
 	path := filepath.Join(r.dir, fmt.Sprintf("%d_%s", id, filename))
 
-	if err := os.WriteFile(path, content, 0644); err != nil {
+	if err := os.WriteFile(path, content, 0o644); err != nil {
 		return nil, err
 	}
 

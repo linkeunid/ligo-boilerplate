@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/go-playground/validator/v10"
+
 	"github.com/linkeunid/ligo"
 	"github.com/linkeunid/ligo-boilerplate/internal/usecase"
 )
@@ -24,7 +25,8 @@ func ExceptionMiddleware(log ligo.Logger) ligo.Middleware {
 				return nil
 			}
 
-			log.Error("Request error",
+			log.Error(
+				"Request error",
 				ligo.LoggerField{Key: "method", Value: ctx.Request().Method},
 				ligo.LoggerField{Key: "path", Value: ctx.Request().URL.Path},
 				ligo.LoggerField{Key: "error", Value: err.Error()},

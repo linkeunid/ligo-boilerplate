@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/go-playground/validator/v10"
+
 	"github.com/linkeunid/ligo"
 	"github.com/linkeunid/ligo-boilerplate/internal/usecase"
 )
@@ -15,7 +16,8 @@ func LoggingMiddleware(log ligo.Logger) ligo.Middleware {
 		return func(ctx ligo.Context) error {
 			start := time.Now()
 
-			log.Debug("Request started",
+			log.Debug(
+				"Request started",
 				ligo.LoggerField{Key: "method", Value: ctx.Request().Method},
 				ligo.LoggerField{Key: "path", Value: ctx.Request().URL.Path},
 			)

@@ -2,18 +2,19 @@ package module
 
 import (
 	"github.com/linkeunid/ligo"
-	ligomemory "github.com/linkeunid/ligo-memory"
 	"github.com/linkeunid/ligo-boilerplate/internal/domain/entity"
 	"github.com/linkeunid/ligo-boilerplate/internal/domain/repository"
 	"github.com/linkeunid/ligo-boilerplate/internal/infrastructure/http/controller"
 	"github.com/linkeunid/ligo-boilerplate/internal/infrastructure/http/presenter"
 	"github.com/linkeunid/ligo-boilerplate/internal/infrastructure/persistence/memory"
 	"github.com/linkeunid/ligo-boilerplate/internal/usecase"
+	ligomemory "github.com/linkeunid/ligo-memory"
 )
 
 // User returns the user module with compile-time safe hook registration.
 func UserModule() ligo.Module {
-	return ligo.NewModule("user",
+	return ligo.NewModule(
+		"user",
 		ligo.Providers(
 			ligomemory.Provider[int, *entity.User](),
 			ligo.Factory[*presenter.UserPresenter](presenter.NewUserPresenter),

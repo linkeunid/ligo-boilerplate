@@ -32,7 +32,8 @@ func NewFileController(uc *usecase.FileUseCase, cfg *config.Config, log ligo.Log
 
 // Initialize is called when the file module initializes.
 func (c *FileController) Initialize() error {
-	c.log.Info("File controller initializing",
+	c.log.Info(
+		"File controller initializing",
 		ligo.LoggerField{Key: "upload_dir", Value: c.cfg.UploadDir},
 		ligo.LoggerField{Key: "max_file_size", Value: c.cfg.MaxFileSize},
 	)
