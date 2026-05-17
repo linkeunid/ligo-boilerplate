@@ -1,3 +1,9 @@
+// This file documents the BeforeApplicationShutdown hook with a runnable
+// example. It is tagged with `//go:build ignore` so `go build ./...` and
+// `go test ./...` skip it — the snippet is for reading, not for the
+// production binary.
+//go:build ignore
+
 package main
 
 import (
