@@ -6,7 +6,7 @@ import (
 	infraauth "github.com/linkeunid/ligo-boilerplate/internal/infrastructure/auth"
 )
 
-// Auth returns the authentication module.
+// AuthModule returns the authentication module.
 // Exports *infraauth.JWTAuth as a singleton for injection into other modules.
 func AuthModule() ligo.Module {
 	return ligo.NewModule(

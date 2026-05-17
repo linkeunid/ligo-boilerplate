@@ -6,7 +6,7 @@ import (
 	"github.com/linkeunid/ligo-boilerplate/internal/infrastructure/http/controller"
 )
 
-// Root returns the root API info module.
+// RootModule returns the root API info module.
 func RootModule() ligo.Module {
 	return ligo.NewModule(
 		"root",

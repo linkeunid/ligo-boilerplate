@@ -12,7 +12,7 @@ import (
 	"github.com/linkeunid/ligo-boilerplate/internal/usecase"
 )
 
-// File returns the file upload module with lifecycle hooks.
+// FileModule returns the file upload module with lifecycle hooks.
 func FileModule() ligo.Module {
 	return ligo.NewModule(
 		"file",

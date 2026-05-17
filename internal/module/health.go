@@ -6,7 +6,7 @@ import (
 	"github.com/linkeunid/ligo-boilerplate/internal/infrastructure/http/controller"
 )
 
-// Health returns the health check module.
+// HealthModule returns the health check module.
 func HealthModule() ligo.Module {
 	return ligo.NewModule(
 		"health",
