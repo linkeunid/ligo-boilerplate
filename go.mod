@@ -4,8 +4,8 @@ go 1.25.10
 
 require (
 	github.com/go-playground/validator/v10 v10.30.2
-	github.com/linkeunid/ligo v0.10.0
-	github.com/linkeunid/ligo-memory v0.1.7
+	github.com/linkeunid/ligo v0.11.0
+	github.com/linkeunid/ligo-memory v0.1.9
 )
 
 require (
